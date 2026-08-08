@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Haciéndonos Parte · cartografía ecológica sensible</title>
+<link rel="icon" href="logo-ecologia.png">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<link href="https://fonts.googleapis.com/css2?family=Anton&display=swap" rel="stylesheet">
+<style>
+ :root{--verde:#1f5862;--oliva:#6c8a3a;--naranja:#f4791f;--agua:#219ebc;--alerta:#e07a5f;
+  --noche:#0e1f1a;--panel:#122822;--card:#1a362e;--borde:#2b4a41;--texto:#e8f0e8;--texto2:#b9cec4}
+ *{box-sizing:border-box}body{margin:0;font-family:system-ui,sans-serif;height:100vh;display:flex;background:var(--noche);color:var(--texto)}
+ main{flex:1;display:flex;min-height:0}
+ #panel{width:420px;overflow:hidden;background:var(--panel);border-right:1px solid var(--borde);display:flex;flex-direction:column}
+ #map{flex:1}
+ #marca{background:var(--verde);color:#fff;padding:1.1rem 1rem 1rem;flex:none}
+ #logo{background:#fbfbf9;border-radius:12px;padding:6px;margin-bottom:.7rem;box-shadow:0 2px 8px rgba(0,0,0,.35)}
+ #logo img{width:100%;max-height:170px;object-fit:contain;display:block;border-radius:8px}
+ #logo:empty::before{content:"🌿";display:block;text-align:center;font-size:2.2rem;padding:.6rem}
+ #marca h1{font-family:Anton,system-ui;font-weight:normal;font-size:2rem;margin:0;line-height:1.05;letter-spacing:.5px}
+ #marca h1 span{color:var(--naranja)}
+ .sub{margin:.35rem 0 0;font-size:.83rem}.tag{margin:.15rem 0 0;font-size:.76rem;font-style:italic;opacity:.85}
+ .acciones{display:flex;gap:.4rem;margin-top:.8rem}
+ .acciones button{font:inherit;border:0;border-radius:8px;padding:.55rem .7rem;cursor:pointer;color:#fff}
+ #btnAdd{flex:1;background:var(--naranja);font-weight:600}
+ #btnAdmin,#btnHelp{background:#ffffff22;border:1px solid #ffffff66}
+ #cuerpo{flex:1;overflow-y:auto;padding:.9rem 1rem 1rem}
+ .chip{display:inline-block;padding:.15rem .5rem;border-radius:999px;font-size:.75rem;background:#e8f0e8;color:#1f2d33;margin:.1rem}
+ #filtros{display:flex;gap:.6rem;flex-wrap:wrap;align-items:center;font-size:.85rem;color:var(--texto2)}
+ #filtros select{background:var(--card);color:var(--texto);border:1px solid var(--borde);border-radius:6px}
+ details{background:var(--card);border:1px solid var(--borde);border-radius:8px;margin:.4rem 0;padding:.4rem .7rem}
+ summary{cursor:pointer;font-weight:600;font-size:.85rem;padding:.2rem 0;color:var(--texto)}
+ details h3{margin:.6rem 0 .2rem;font-size:.78rem;text-transform:uppercase;color:var(--texto2)}
+ .voz{font-size:.88rem;line-height:1.5;color:var(--texto)}.voz b{color:#8fd0a8;text-transform:capitalize}
+ .interv{padding:.4rem .6rem;border-left:3px solid var(--naranja);background:var(--panel);margin:.35rem 0;font-size:.85rem;border-radius:0 8px 8px 0;color:var(--texto)}
+ .interv small{color:var(--texto2)}
+ .anio{display:inline-block;background:var(--naranja);color:#fff;border-radius:6px;padding:.05rem .45rem;font-size:.72rem;margin-right:.3rem}
+ .reporte{border-left:3px solid var(--alerta);padding:.35rem .6rem;background:var(--panel);margin:.35rem 0;font-size:.85rem;border-radius:0 8px 8px 0;color:var(--texto)}
+ .reporte small{color:var(--texto2)}
+ .pot{border-left:3px solid var(--oliva);padding:.35rem .6rem;background:var(--panel);margin:.35rem 0;font-size:.85rem;border-radius:0 8px 8px 0;color:var(--texto)}
+ .paper{display:block;margin:.3rem 0;padding:.5rem;background:var(--panel);border:1px solid var(--borde);border-radius:8px;font-size:.85rem;text-decoration:none;color:#cfe8d8}
+ form{display:grid;gap:.4rem;margin-top:.5rem}
+ input,select,textarea{padding:.45rem;border:1px solid var(--borde);border-radius:6px;font:inherit;font-size:.85rem;background:var(--noche);color:var(--texto)}
+ button{background:#2d6a5f;border:0;color:#fff;padding:.5rem;border-radius:6px;cursor:pointer;font:inherit}
+ .mini{padding:.25rem .5rem;font-size:.75rem;display:inline-block;margin:.15rem}.rojo{background:#c1554d}
+ .leyenda{font-size:.76rem;color:var(--texto2);margin:.5rem 0}
+ #hint{background:#ffb703;color:#333;padding:.4rem .6rem;border-radius:6px;font-size:.85rem;margin-bottom:.5rem}
+ #adminSec{background:#33231b;border:1px solid var(--alerta);border-radius:8px;padding:.5rem;margin-bottom:.6rem;font-size:.85rem;color:var(--texto)}
+ .pin{position:relative;width:22px;height:22px;border-radius:50%;border:3px solid #fff;box-shadow:0 1px 5px rgba(0,0,0,.45)}
+ .pin .badge{position:absolute;top:-9px;right:-11px;background:var(--naranja);color:#fff;font-size:.66rem;border-radius:999px;padding:1px 5px}
+ .pin.arroyo{background:var(--agua)}.pin.pastizal{background:var(--oliva)}.pin.corredor{background:var(--verde)}
+ .leaflet-popup-content-wrapper{border-radius:12px;overflow:hidden}
+ .leaflet-popup-content{margin:0}
+ .card{width:260px;font-size:.82rem;color:#222;background:#fff}
+ .card-img{height:110px;background-size:cover;background-position:center;background-image:linear-gradient(160deg,#1f5862,#6c8a3a)}
+ .card-body{padding:.6rem .7rem .7rem}
+ .card-tag{display:inline-block;background:#e8f0e8;color:#1f2d33;border-radius:999px;font-size:.68rem;padding:.1rem .5rem;margin-bottom:.25rem}
+ .card b{display:block;font-size:.92rem;margin-bottom:.15rem}
+ .card .aut{display:block;color:#666;font-size:.72rem;margin-bottom:.45rem}
+ .card-links{display:flex;gap:.35rem;flex-wrap:wrap}
+ .card-links a{display:inline-block;background:#1f5862;color:#fff;padding:.28rem .6rem;border-radius:6px;text-decoration:none;font-size:.72rem}
+ .card-links a.ig{background:#c13584}.card-links a.web{background:#6c8a3a}
+ @media(max-width:800px){main{flex-direction:column}#panel{width:auto;max-height:52%;order:2}}
+</style>
+</head>
+<body>
+<main>
+ <aside id="panel">
+  <div id="marca">
+   <div id="logo"><img src="logo-ecologia.png" alt="Licenciatura en Ecología · UNGS/ICO" onerror="this.remove()"></div>
+   <h1>HACIÉNDONOS <span>PARTE</span></h1>
+   <p class="sub">sumando comunidades a la cartografía ecológica sensible del territorio</p>
+   <p class="tag">Un mapa que cultiva ser, pensar, relacionarse, colaborar y actuar.</p>
+   <div class="acciones">
+    <button id="btnAdd">➕ Añadir tu lugar</button>
+    <button id="btnHelp" title="Contacto y sugerencias">?</button>
+    <button id="btnAdmin" title="Modo admin">🔐</button>
+   </div>
+  </div>
+  <div id="cuerpo">
+   <div id="hint" hidden>📍 Hacé clic en el mapa para ubicar tu lugar…</div>
+   <div id="filtros">
+    <label><input type="checkbox" data-f="arroyo" checked> Arroyos</label>
+    <label><input type="checkbox" data-f="pastizal" checked> Pastizal</label>
+    <label><input type="checkbox" data-f="corredor" checked> Biocorredor</label>
+    <select id="fIntSel" style="font-size:.8rem;padding:.25rem"></select>
+   </div>
+   <div class="leyenda">Número en el pin = intervenciones. Borde punteado = polígono aproximado. 🔄 Datos conectados a tu Google Sheet.</div>
+   <div id="adminSec" hidden></div>
+   <div id="contenido"><p>Tocá un punto: tarjeta visual con foto y enlaces en el mapa, y ficha completa acá con las <b>intervenciones</b> primero.</p></div>
+  </div>
+ </aside>
+ <div id="map"></div>
+</main>
+
+<div id="ayuda" style="position:fixed;inset:0;background:rgba(0,0,0,.5);display:none;align-items:center;justify-content:center;z-index:3000">
+ <div style="background:#fbfbf9;color:#222;border-radius:12px;max-width:400px;width:92%;padding:1.2rem;font-size:.9rem">
+  <h3 style="margin:0 0 .4rem">🌿 Haciéndonos Parte</h3>
+  <p style="margin:.2rem 0">Un proyecto de la Licenciatura en Ecología · UNGS/ICO, que va sumando comunidades a una cartografía sensible del territorio: arroyos, pastizales y biocorredores documentados junto a quienes los habitan.</p>
+  <p style="margin:.4rem 0"><b>¿Dudas, sugerencias, querés sumar tu lugar o una intervención?</b><br>📧 <a href="mailto:ecologia@ungs.edu.ar">ecologia@ungs.edu.ar</a></p>
+  <form id="fSug" style="display:grid;gap:.4rem;margin-top:.5rem">
+   <input name="de" placeholder="Tu nombre / organización" style="padding:.45rem;border:1px solid #ccc;border-radius:6px;background:#fff;color:#222">
+   <textarea name="msg" rows="3" placeholder="Escribí tu sugerencia…" required style="padding:.45rem;border:1px solid #ccc;border-radius:6px;background:#fff;color:#222"></textarea>
+   <button style="background:#f4791f;border:0;color:#fff;padding:.5rem;border-radius:6px;cursor:pointer">📨 Enviar sugerencia</button>
+  </form>
+  <button id="cerrarAyuda" style="margin-top:.6rem;background:#888;border:0;color:#fff;padding:.4rem .8rem;border-radius:6px;cursor:pointer">Cerrar ✕</button>
+ </div>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+if(!window.L){document.getElementById("contenido").innerHTML="<p style='color:#ffb703'>⚠️ No se pudo cargar la librería de mapas (Leaflet). Recargá; si sigue, avisame.</p>";}
+/* ===== TU GOOGLE SHEET PUBLICADA (CSV) — ya conectada ===== */
+const SHEET_CSV="https://docs.google.com/spreadsheets/d/e/2PACX-1vTZ1dIkVmj8_v83Y6eH3Bgs-hg1hlat-Yp7TelECZFzgncaLOscr-RLxfWPU2fvCA/pub?gid=710452286&single=true&output=csv";
+const APPS_SCRIPT_URL="";
+const TIPOS={diagnostico:"🔬 Diagnóstico",comunidad:"🗣 Comunidad",propuesta:"📋 Propuesta",diseno:"📐 Diseño participativo",restauracion:"🌱 Restauración",monitoreo:"💧 Monitoreo"};
+const POLIS={juanita:{aprox:true,coords:[[-34.4682,-58.7362],[-34.4682,-58.7254],[-34.4775,-58.7254],[-34.4775,-58.7362]]}};
+/* respaldo por si la Sheet no respondiera */
+const BASE_AREAS=[
+ {id:"cuzco",nombre:"Cuenca del Arroyo Cuzco",coords:[-34.487026,-58.746261],cat:"arroyo",foto:"img/foto-cuzco.jpg",links:[],tipo:"arroyo urbano",autores:["Estudiantes y docentes del LIDA – UNGS"],accesibilidad:{nivel:"baja",notas:"Barrios sobre la ribera; acceso por pasillos (Tortuguitas)."},ecosistemas:["arroyo urbano","pastizal"],actores:["Vecinos de la cuenca","Recolectores informales","Municipio de Malvinas Argentinas","LIDA–UNGS"],problematicas:["Arrojo informal de residuos","Vertidos directos al arroyo","Quemas a cielo abierto","Falta de articulación entre actores","Lixiviados hacia acuíferos"],potencialidades:["Bolsas verdes en 10.500 hogares","Compost barrial","Recolectores articulados con merenderos y escuelas"],especies:{aves:[],fauna:[],flora:[]},intervenciones:[{anio:2022,tipo:"diagnostico",quien:"LIDA – UNGS (estudiantes y docentes)",accion:"Estudio exploratorio de la gestión de RSU: actores, encuestas a vecinos y recorridas de campo por la cuenca."}],idg:{ser:"El arroyo corre entre las casas y mucha gente creció con él de fondo, aunque hoy duela verlo. ¿Qué recuerdo tenés de tu arroyo? ¿Cómo te gustaría verlo en diez años?",pensar:"Todo lo que cae en la cuenca fluye al Cuzco: basurales → lixiviados → acuíferos → canillas. ¿Qué pasaría con el agua subterránea si los residuos se gestionaran bien?",relacionarse:"Vecinos, carreros, cartoneros y merenderos ya forman una red que el mapa oficial no ve. ¿A quién de tu barrio conocés que cuide este arroyo?",colaborar:"El municipio separa con bolsas verdes, las escuelas reciclan, los recolectores recuperan: piezas sueltas del mismo rompecabezas. ¿Qué mesa falta para sentarlas juntas?",actuar:"Compost barrial, puntos verdes, recolectores en la planificación pública. ¿Qué acción chica podrías empezar vos esta semana?"},papers:[{titulo:"Gestión de RSU en la cuenca del arroyo Cuzco — LIDA/UNGS",url:"https://www.ungs.edu.ar/wp-content/uploads/2025/07/Gestion-RSU-cuenca-Cuzco-2022.pdf",anio:2022}],reportes:[]},
+ {id:"juanita",nombre:"Campo La Juanita",coords:[-34.472684,-58.730848],cat:"pastizal",foto:"img/foto-juanita.jpg",links:[{t:"📷 @reserva_juanita",url:"https://www.instagram.com/reserva_juanita",clase:"ig"}],tipo:"pastizal · futura Reserva Natural Urbana",autores:["Estudiantes y docentes del LIDA – UNGS"],poligonoAprox:true,poligono:[[-34.4682,-58.7362],[-34.4682,-58.7254],[-34.4775,-58.7254],[-34.4775,-58.7362]],accesibilidad:{nivel:"media",notas:"El Callao, Fray L. Bolaños, Patricias Argentinas y Canadá (Grand Bourg)."},ecosistemas:["pastizal pampeano","arroyo Claro a cielo abierto"],actores:["Familia de La Juanita","Vecinos","UNGS (LIDA)","PBA (expropiación en curso)"],problematicas:["Quemas ilegales y microbasurales","Presión inmobiliaria","Apropiación difusa · reclamo histórico"],potencialidades:["~100 ha con potencial de Reserva Natural Urbana","Patrimonio cultural de Malvinas Argentinas","Alto valor educativo"],especies:{aves:["Carancho","Zorzal","Benteveo","Calandria","Cardenal","Tordo","Cotorra","Torcaza"],fauna:["Cuís","Comadreja","Liebre","Lagartija","Murciélago","Rana criolla"],flora:["Cortadera","Espartillo","Tala","Palán palán","Artemisa","Campanilla"]},intervenciones:[{anio:2024,tipo:"diagnostico",quien:"LIDA – UNGS",accion:"Tres salidas a campo (mayo 2024): relevamiento de flora, fauna, usos del espacio y microbasurales."},{anio:2024,tipo:"comunidad",quien:"LIDA – UNGS",accion:"Entrevista de memoria oral a la familia de La Juanita."},{anio:2025,tipo:"propuesta",quien:"Equipo docente UNGS",accion:"Propuesta de Reserva Natural Urbana; insumo para el proceso de expropiación provincial."}],idg:{ser:"«Salimos cada mañana a recorrerlo; es parte de nuestra historia.» — Familia de La Juanita. ¿Qué te pasa en el cuerpo cuando entrás al campo? ¿Qué le dejarías escrito a quien lo visite?",pensar:"El pastizal resurgió solo entre el asfalto: amortigua ruido, regula temperatura, filtra agua. ¿Cuánto vale un ecosistema que funciona sin pedir nada?",relacionarse:"La Juanita, su hija, su nieto, el casero, el pastor: el campo tiene nombre y apellido. ¿Qué historias de tu barrio merecerían estar en un mapa?",colaborar:"UNGS documenta, la Provincia expropia, la familia resiste, los vecinos reclaman: el mismo carro, todavía por separado. ¿Qué puente tenderías primero?",actuar:"Reserva Natural Urbana, visitas educativas, limpieza colectiva, museo vivo del pastizal. ¿A quién invitarías a la primera jornada?"},papers:[{titulo:"La Juanita: el regreso del pastizal, la resistencia de la historia — UNGS",url:"https://www.ungs.edu.ar/wp-content/uploads/2025/06/La-Juanita-el-regreso-del-pastizal_-la-resistencia-de-la-historia.pdf",anio:2025}],reportes:[]},
+ {id:"pinazo",nombre:"Biocorredor Nativo e Histórico Arroyo Pinazo",coords:[-34.46613,-58.81325],cat:"corredor",foto:"img/foto-pinazo.jpg",links:[{t:"🌐 UNGS",url:"https://www.ungs.edu.ar",clase:"web"}],tipo:"biocorredor ribereño · Área Protegida (ORD 1747/2023)",autores:["Galván, L.","Ramos, L.","Molina, L.","Sosa, V.","Ibarra, S.","Villalba, E.","Ferreyra, L. (METRAM)","Ojeda, D. (UNLu–METRAM)","Figueroa, M."],accesibilidad:{nivel:"media",notas:"Posta Histórica, límite José C. Paz–Pilar (La Lonja · G5MP+H3)."},ecosistemas:["bosque en galería","ribereño","pastizal"],actores:["UNGS","METRAM","Subsecretaría de Recursos Hídricos PBA","Municipio de José C. Paz","Coop. Sueños Paceños"],problematicas:["Avance inmobiliario sobre la ribera","Contaminación industrial y cloacal","Exóticas invasoras","Ribera sin delimitar"],potencialidades:["Diseño participativo interinstitucional","Valor histórico: paso de San Martín","Bosque en galería con fauna"],especies:{aves:["Picaflores","Benteveo","Hornero","Garza mora","Martín pescador"],fauna:["Carpincho","Coipo","Comadreja","Gato montés"],flora:["Tala","Chilca","Pasionaria","Grindelia","Margarita de campo"]},intervenciones:[{anio:2023,tipo:"propuesta",quien:"HCD José C. Paz + actores locales",accion:"Declaratoria de Área Protegida del arroyo y su ribera (ORD 1747/2023)."},{anio:2023,tipo:"restauracion",quien:"METRAM + cooperativa Sueños Paceños",accion:"Recuperación de ribera, plantaciones y cartelería «Bienvenidos al biocorredor»."},{anio:2024,tipo:"monitoreo",quien:"Subsecretaría de Recursos Hídricos PBA",accion:"Monitoreo fisicoquímico de calidad del agua."},{anio:2025,tipo:"diseno",quien:"UNGS + METRAM",accion:"Diseño participativo del biocorredor nativo e histórico en dos etapas."}],idg:{ser:"«Bienvenidos al biocorredor nativo e histórico.» — cartel pintado a mano en la ribera. ¿Qué lugar tuyo guarda una historia que nadie está contando?",pensar:"Agua deteriorada, ribera sin delimitar, topografía modificada por el barrio privado: el sistema acusa cada decisión sobre el suelo. ¿Quién decide qué pasa con una ribera?",relacionarse:"METRAM cuida y planta, la cooperativa trabaja, los vecinos defienden: el arroyo ya tiene quienes lo aman. ¿Te sumaste alguna vez a un cuidado así?",colaborar:"UNGS + METRAM + Recursos Hídricos + municipio: el puente que faltaba ya se está construyendo. ¿Qué actor falta en la foto?",actuar:"Biocorredor en dos etapas, restauración, control de exóticas, hacer valer el área protegida. ¿Qué sabés hacer vos que este territorio necesite?"},papers:[{titulo:"Documento proyecto biocorredor Pinazo — UNGS/METRAM",url:"https://www.ungs.edu.ar/wp-content/uploads/2025/07/Documento-proyecto-biocorredor-Pinazo.pdf",anio:2025}],reportes:[]}
+];
+
+const lsGet=(k,d)=>{try{return JSON.parse(localStorage.getItem(k))??d}catch(e){return d}};
+const lsSet=(k,v)=>localStorage.setItem(k,JSON.stringify(v));
+let ADMIN=location.search.includes("admin=1"), modoAgregar=false, tmp=null, vistas=[];
+const publicadas=()=>BASE_AREAS.concat(lsGet("aprobadas",[]));
+const colorCat=c=>c==="arroyo"?"#219ebc":c==="corredor"?"#1f5862":"#6c8a3a";
+const num=v=>{let s=(v||"").toString().trim();
+ if(s.includes(",")) s=s.replace(/\./g,"").replace(",",".");
+ else if((s.match(/\./g)||[]).length>1) s=s.replace(/^(-?\d+)\.(\d{3})\.(\d+)$/,"$1.$2$3");
+ return +s;};
+const split=s=>s?s.split(",").map(x=>x.trim()).filter(Boolean):[];
+
+if(window.L){
+const map=L.map("map").setView([-34.475,-58.79],12);
+const bSuave=L.tileLayer("https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png",{attribution:"© OSM © CARTO",maxZoom:20}).addTo(map);
+const bLienzo=L.tileLayer("https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png",{attribution:"© OSM © CARTO",maxZoom:20});
+const bSat=L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",{attribution:"© Esri",maxZoom:19});
+L.control.layers({"Callejero suave":bSuave,"Lienzo mínimo":bLienzo,"Satélite":bSat},null,{position:"topright"}).addTo(map);
+const capa=L.layerGroup().addTo(map), capaPend=L.layerGroup().addTo(map);
+map.on("click",e=>{ if(!modoAgregar)return;
+ const c=[+e.latlng.lat.toFixed(5),+e.latlng.lng.toFixed(5)];
+ if(tmp)map.removeLayer(tmp); tmp=L.marker(c).addTo(map);
+ modoAgregar=false; document.getElementById("hint").hidden=true; formNuevaArea(c); });
+
+const sel=document.getElementById("fIntSel");
+sel.innerHTML=`<option value="todas">🛠 Todas las intervenciones</option>`+Object.entries(TIPOS).map(([k,v])=>`<option value="${k}">${v}</option>`).join("");
+sel.onchange=pintar;
+const intsDe=id=>{const a=vistas.find(x=>x.id===id);
+ return [...(a?a.intervenciones||[]:[]),...lsGet("intsOk",[]).filter(i=>i.areaId===id),...(ADMIN?lsGet("intsPend",[]).filter(i=>i.areaId===id):[])];};
+
+function pintar(){
+ capa.clearLayers(); capaPend.clearLayers();
+ const on=[...document.querySelectorAll("#filtros input")].filter(c=>c.checked).map(c=>c.dataset.f);
+ const fi=sel.value;
+ vistas.forEach(a=>{ if(!on.includes(a.cat))return;
+  const its=intsDe(a.id);
+  if(fi!=="todas"&&!its.some(i=>i.tipo===fi))return;
+  if(a.poligono&&a.poligono.length>2){
+   L.polygon(a.poligono,{color:colorCat(a.cat),weight:2.5,fillColor:colorCat(a.cat),fillOpacity:.22,dashArray:a.poligonoAprox?"5 5":null})
+    .bindTooltip(a.nombre).on("click",()=>ficha(a)).addTo(capa);}
+  const ic=L.divIcon({className:"",html:`<div class="pin ${a.cat}">${its.length?`<span class="badge">${its.length}</span>`:""}</div>`,iconSize:[22,22],iconAnchor:[11,11]});
+  const m=L.marker(a.coords,{icon:ic}).addTo(capa);
+  const aut=a.autores||[], autTxt=aut.length>3?aut.slice(0,3).join(", ")+" et al.":aut.join(", ");
+  m.bindPopup(`<div class="card"><div class="card-img" style="${a.foto?`background-image:url('${a.foto}')`:""}"></div><div class="card-body"><span class="card-tag">${a.cat}</span><b>${a.nombre}</b><span class="aut">${autTxt||"—"} · ${a.papers[0]?a.papers[0].anio:""} · 🛠 ${its.length}</span><div class="card-links">${a.papers[0]?`<a target="_blank" href="${a.papers[0].url}">📄 Estudio</a>`:""}${(a.links||[]).map(l=>`<a class="${l.clase||""}" target="_blank" href="${l.url}">${l.t}</a>`).join("")}</div></div></div>`,{maxWidth:280});
+  m.bindTooltip(a.nombre); m.on("click",()=>ficha(a)); });
+ if(ADMIN) lsGet("propuestas",[]).forEach(p=>{
+  L.circleMarker(p.coords,{radius:8,dashArray:"4 4",color:"#e07a5f",weight:2,fillColor:"#ffb703",fillOpacity:.5})
+   .bindTooltip("⏳ "+p.nombre).on("click",()=>ficha(p,true)).addTo(capaPend); });
+ renderAdmin();
+}
+
+function ficha(a,pend){
+ const its=intsDe(a.id).slice().sort((x,y)=>(y.anio||0)-(x.anio||0));
+ const r=a._reportes||a.reportes||[], sp=a.especies||{aves:[],fauna:[],flora:[]};
+ document.getElementById("contenido").innerHTML=`<div class="ficha">
+  <details open><summary>🛠 Intervenciones en el territorio (${its.length})</summary>
+   ${its.map(i=>`<div class="interv"><span class="anio">${i.anio}</span><b>${TIPOS[i.tipo]||i.tipo}</b>${i.pend?" ⏳":""}<br>${i.accion}<br><small>${i.quien}</small></div>`).join("")||"<p>Sin intervenciones registradas todavía.</p>"}
+   <button class="mini" id="bInt">➕ Sumar intervención (materia / equipo)</button>
+   <div id="fIntWrap" hidden><form id="fInt">
+    <input name="anio" placeholder="Año *" required><input name="quien" placeholder="Materia / equipo / organización *" required>
+    <select name="tipo">${Object.entries(TIPOS).map(([k,v])=>`<option value="${k}">${v}</option>`).join("")}</select>
+    <textarea name="accion" rows="2" placeholder="Acción concreta en el territorio *" required></textarea>
+    <button>Enviar a validación</button></form></div></details>
+  <details open><summary>🌿 Voces del territorio (IDG)</summary>
+   ${Object.entries(a.idg||{}).filter(([k,v])=>v).map(([k,v])=>`<p class="voz"><b>${k}</b> — ${v}</p>`).join("")||"<p>—</p>"}</details>
+  <details><summary>🗂 Datos del lugar</summary>
+   <span class="chip">${a.tipo}</span>
+   <h3>Ecosistemas</h3><p>${a.ecosistemas.map(e=>`<span class="chip">${e}</span>`).join("")}</p>
+   <h3>Especies</h3><p>🐦 ${sp.aves.join(", ")||"—"}<br>🦫 ${sp.fauna.join(", ")||"—"}<br>🌱 ${sp.flora.join(", ")||"—"}</p>
+   <h3>Accesibilidad (${a.accesibilidad.nivel})</h3><p>${a.accesibilidad.notas}</p></details>
+  <details><summary>👥 Actores y alianzas</summary>
+   <p>${(a.actores||[]).map(e=>`<span class="chip" style="background:#e6dcf5">${e}</span>`).join("")||"—"}</p></details>
+  <details open><summary>⚠️ Problemáticas</summary>
+   ${(a.problematicas||[]).map(x=>`<div class="reporte">${x}</div>`).join("")||"<p>—</p>"}
+   ${r.map(x=>`<div class="reporte"><strong>${x.tipo}</strong> — ${x.descripcion}<br><small>${x.autor} · ${String(x.fecha).slice(0,10)}</small></div>`).join("")}</details>
+  <details><summary>💚 Potencialidades</summary>${(a.potencialidades||[]).map(x=>`<div class="pot">${x}</div>`).join("")||"<p>—</p>"}</details>
+  <details open><summary>📚 Estudio de referencia</summary>
+   ${a.papers.map(p=>`<a class="paper" target="_blank" href="${p.url}">${p.titulo} (${p.anio})</a>`).join("")||"<p>—</p>"}
+   <p style="font-size:.75rem;color:var(--texto2)">${(a.autores||[]).join(" · ")}</p></details>
+  ${pend&&ADMIN?`<button class="mini" id="bOk">✅ Validar y publicar</button><button class="mini rojo" id="bNo">🗑 Rechazar</button>`:""}
+  ${pend?"":`<details><summary>📣 Reportar / sumar información</summary>
+   <form id="frep"><input name="autor" placeholder="Tu nombre u organización" required>
+    <select name="tipo"><option>Aporte de especie/observación</option><option>Contaminación</option><option>Microbasural</option><option>Quema</option><option>Fauna afectada</option><option>Otro</option></select>
+    <textarea name="descripcion" rows="3" placeholder="Contanos qué ves o qué problema hay" required></textarea>
+    <button>Enviar</button></form></details>`}</div>`;
+ document.getElementById("bInt").onclick=()=>{document.getElementById("fIntWrap").hidden=!document.getElementById("fIntWrap").hidden;};
+ document.getElementById("fInt").addEventListener("submit",e=>{e.preventDefault();const f=new FormData(e.target);
+  const ps=lsGet("intsPend",[]);
+  ps.push({id:"i"+Date.now(),areaId:a.id,pend:true,anio:+f.get("anio")||f.get("anio"),quien:f.get("quien"),tipo:f.get("tipo"),accion:f.get("accion")});
+  lsSet("intsPend",ps); alert("¡Gracias! La intervención quedó pendiente de validación."); iniciar();});
+ if(pend&&ADMIN){
+  document.getElementById("bOk").onclick=()=>{const ps=lsGet("propuestas",[]),p=ps.find(x=>x.id===a.id);ps.splice(ps.indexOf(p),1);lsSet("propuestas",ps);
+   const ap=lsGet("aprobadas",[]);delete p.status;ap.push(p);lsSet("aprobadas",ap);iniciar();};
+  document.getElementById("bNo").onclick=()=>{lsSet("propuestas",lsGet("propuestas",[]).filter(x=>x.id!==a.id));iniciar();};}
+ const fr=document.getElementById("frep");
+ if(fr) fr.addEventListener("submit",async e=>{e.preventDefault();const f=new FormData(e.target);
+  const d={areaId:a.id,autor:f.get("autor"),tipo:f.get("tipo"),descripcion:f.get("descripcion"),fecha:new Date().toISOString().slice(0,10)};
+  if(APPS_SCRIPT_URL){await fetch(APPS_SCRIPT_URL,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify(d)});}
+  else{const l=lsGet("reportesLoc",[]);l.push(d);lsSet("reportesLoc",l);}
+  alert("¡Gracias por sumar tu voz! 🌱"); iniciar();});
+}
+
+function formNuevaArea(coords){
+ document.getElementById("contenido").innerHTML=`<div class="ficha"><h2 style="margin:.2rem 0">➕ Nuevo lugar</h2>
+  <p style="font-size:.8rem;color:var(--texto2)">Punto ${coords[0]}, ${coords[1]} · quedará pendiente de validación.</p>
+  <form id="fna"><input name="nombre" placeholder="Nombre del lugar *" required>
+   <input name="autor" placeholder="Quién propone *" required>
+   <select name="cat"><option value="arroyo">Arroyo</option><option value="pastizal">Pastizal/espacio verde</option><option value="corredor">Corredor/ribereño</option></select>
+   <input name="ecos" placeholder="Ecosistemas (coma)"><input name="sp" placeholder="Especies vistas (coma)">
+   <input name="paper" placeholder="Link a estudio/IG/noticia (opcional)">
+   <textarea name="problema" rows="2" placeholder="Problemática o potencial"></textarea>
+   <button>Enviar a validación</button></form></div>`;
+ document.getElementById("fna").onsubmit=e=>{e.preventDefault();const f=new FormData(e.target);
+  const link=f.get("paper")||"";
+  const ps=lsGet("propuestas",[]);
+  ps.push({id:"p"+Date.now(),status:"pendiente",coords,cat:f.get("cat"),nombre:f.get("nombre"),tipo:"propuesta comunitaria",
+   autores:[f.get("autor")],accesibilidad:{nivel:"—",notas:"Por relevar."},ecosistemas:split(f.get("ecos")),
+   actores:[f.get("autor")],problematicas:f.get("problema")?[f.get("problema")]:[],potencialidades:[],
+   especies:{aves:split(f.get("sp")),fauna:[],flora:[]},intervenciones:[],idg:{},foto:"",links:[],
+   papers:link?[{titulo:link,url:link.startsWith("http")?link:"#",anio:""}]:[],reportes:[]});
+  lsSet("propuestas",ps); alert("¡Enviado! Pendiente de validación."); iniciar();};
+}
+function renderAdmin(){const el=document.getElementById("adminSec");
+ if(!ADMIN){el.hidden=true;return} el.hidden=false;
+ const pi=lsGet("intsPend",[]);
+ el.innerHTML=`🔐 <b>Admin</b> · lugares pend.: ${lsGet("propuestas",[]).length} · intervenciones pend.: ${pi.length} <button class="mini" id="bExp">⬇ areas.json</button>
+  ${pi.map(i=>`<div class="interv">⏳ ${i.anio} · ${TIPOS[i.tipo]} · ${i.accion}<br><small>${i.quien}</small>
+   <button class="mini" data-ok="${i.id}">✅</button><button class="mini rojo" data-no="${i.id}">🗑</button></div>`).join("")}`;
+ el.querySelectorAll("[data-ok]").forEach(b=>b.onclick=()=>{const ps=lsGet("intsPend",[]),p=ps.find(x=>x.id===b.dataset.ok);
+  ps.splice(ps.indexOf(p),1);lsSet("intsPend",ps);delete p.pend;const ok=lsGet("intsOk",[]);ok.push(p);lsSet("intsOk",ok);iniciar();});
+ el.querySelectorAll("[data-no]").forEach(b=>b.onclick=()=>{lsSet("intsPend",lsGet("intsPend",[]).filter(x=>x.id!==b.dataset.no));iniciar();});
+ document.getElementById("bExp").onclick=()=>{const b=new Blob([JSON.stringify(publicadas(),null,2)],{type:"application/json"});
+  const a=document.createElement("a");a.href=URL.createObjectURL(b);a.download="areas.json";a.click();};}
+document.getElementById("btnAdmin").onclick=()=>{if(ADMIN){ADMIN=false;pintar();return}
+ if(prompt("Contraseña:")==="atlas2026"){ADMIN=true;pintar();}else alert("Incorrecta");};
+document.getElementById("btnAdd").onclick=()=>{modoAgregar=true;document.getElementById("hint").hidden=false;};
+document.querySelectorAll("#filtros input").forEach(c=>c.addEventListener("change",pintar));
+
+async function iniciar(){
+ let extra=[];
+ if(APPS_SCRIPT_URL){try{extra=await(await fetch(APPS_SCRIPT_URL)).json()}catch(e){}}
+ let base=null;
+ if(SHEET_CSV){try{const t=await(await fetch(SHEET_CSV)).text();base=deSheet(parseCSV(t));}catch(e){console.warn("No se pudo leer la planilla:",e);}}
+ vistas=(base&&base.length?base:BASE_AREAS).map(a=>{
+   const p=POLIS[a.id]; if(p&&!a.poligono){a.poligono=p.coords;a.poligonoAprox=p.aprox;}
+   a._reportes=[...(a.reportes||[])]; return a;});
+ if(base&&base.length) vistas=vistas.concat(lsGet("aprobadas",[]));
+ extra.concat(lsGet("reportesLoc",[])).forEach(r=>{const a=vistas.find(x=>x.id===r.areaId); if(a)a._reportes.push(r);});
+ pintar();}
+function parseCSV(t){const rows=[];let row=[],cur="",inQ=false;
+ for(let i=0;i<t.length;i++){const ch=t[i];
+  if(inQ){if(ch='"'){if(t[i+1]==='"'){cur+='"';i++;}else inQ=false;}else cur+=ch;}
+  else{if(ch='"')inQ=true;else if(ch===','){row.push(cur);cur="";}else if(ch==='\n'){row.push(cur);rows.push(row);row=[];cur="";}else if(ch!=='\r')cur+=ch;}}
+ row.push(cur);rows.push(row);return rows;}
+function deSheet(rows){
+ const head=(rows[0]||[]).map(h=>(h||"").trim().toLowerCase());
+ return rows.slice(1).filter(r=>(r[0]||"").trim()&&(r[1]||"").trim()).map(r=>{
+  const o={};head.forEach((h,i)=>o[h]=(r[i]||"").trim());
+  return {id:o.id,nombre:o.nombre,coords:[num(o.lat),num(o.lng)],cat:(o.cat||"pastizal").toLowerCase(),
+   foto:o.foto||"",
+   links:(o.links||o.link||"").split(";;").map(s=>s.trim()).filter(Boolean).map(s=>{
+    const p=s.split("|");return{t:(p[0]||"").trim(),url:(p[1]||"").trim(),clase:(p[2]||"").trim()};}),
+   tipo:o.tipo||"—",autores:split(o.autores),
+   accesibilidad:{nivel:o.acc_nivel||"—",notas:o.acc_notas||"—"},
+   ecosistemas:split(o.ecosistemas),actores:split(o.actores),
+   problematicas:split(o.problematicas),potencialidades:split(o.potencialidades),
+   especies:{aves:split(o.aves),fauna:split(o.fauna),flora:split(o.flora)},
+   intervenciones:(o.intervenciones||"").split(";;").map(s=>s.trim()).filter(Boolean).map(s=>{
+    const p=s.split("|");return{anio:+(p[0]||"")||p[0]||"—",tipo:(p[1]||"").trim()||"diagnostico",quien:(p[2]||"").trim(),accion:(p[3]||"").trim()};}),
+   idg:{ser:o.ser||"",pensar:o.pensar||"",relacionarse:o.relacionarse||"",colaborar:o.colaborar||"",actuar:o.actuar||""},
+   papers:o.paper_url?[{titulo:o.paper_titulo||o.paper_url,url:o.paper_url,anio:+o.paper_anio||o.paper_anio||""}]:[],
+   reportes:[]};});}
+iniciar();
+} /* fin if(window.L) */
+
+const modales=document.querySelectorAll('[id="ayuda"]');
+const abrirM=()=>modales.forEach(m=>m.style.display="flex");
+const cerrarM=()=>modales.forEach(m=>m.style.display="none");
+document.getElementById("btnHelp").onclick=abrirM;
+modales.forEach(m=>{
+ m.addEventListener("click",e=>{if(e.target===m)cerrarM();});
+ m.querySelectorAll("button").forEach(b=>{
+  const t=(b.textContent||"").toLowerCase();
+  if(t.includes("cerrar")||t.includes("✕")||t.includes("×")) b.addEventListener("click",cerrarM);});
+});
+document.addEventListener("keydown",e=>{if(e.key==="Escape")cerrarM();});
+document.querySelectorAll('[id="fSug"]').forEach(f=>f.addEventListener("submit",e=>{
+ e.preventDefault();const fd=new FormData(f);
+ const texto=`Sugerencia para Haciéndonos Parte:\n\n${fd.get("msg")}\n\n— ${fd.get("de")||"alguien que quiere sumar"}`;
+ window.location.href=`mailto:ecologia@ungs.edu.ar?subject=${encodeURIComponent("Sugerencia · Haciéndonos Parte")}&body=${encodeURIComponent(texto)}`;}));
+</script>
+</body>
+</html>
